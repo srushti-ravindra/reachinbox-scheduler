@@ -123,13 +123,17 @@ export const scheduleEmails = async (req: Request, res: Response) => {
 export const getScheduledEmails = async (req: Request, res: Response) => {
   const { userId } = req.query;
   try {
-    const dbEmails = await prisma.emailJob.findMany({
+    const dbPromise = prisma.emailJob.findMany({
       where: {
         userId: String(userId),
         status: { in: ['SCHEDULED', 'RATE_LIMITED_RESCHEDULED'] },
       },
       orderBy: { scheduledFor: 'asc' },
     });
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Prisma timeout')), 500)
+    );
+    const dbEmails = await Promise.race([dbPromise, timeoutPromise]);
     const memEmails = inMemoryJobs.filter(
       (j) => j.userId === String(userId) && ['SCHEDULED', 'RATE_LIMITED_RESCHEDULED'].includes(j.status)
     );
@@ -145,13 +149,17 @@ export const getScheduledEmails = async (req: Request, res: Response) => {
 export const getSentEmails = async (req: Request, res: Response) => {
   const { userId } = req.query;
   try {
-    const dbEmails = await prisma.emailJob.findMany({
+    const dbPromise = prisma.emailJob.findMany({
       where: {
         userId: String(userId),
         status: { in: ['SENT', 'FAILED'] },
       },
       orderBy: { sentAt: 'desc' },
     });
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Prisma timeout')), 500)
+    );
+    const dbEmails = await Promise.race([dbPromise, timeoutPromise]);
     const memEmails = inMemoryJobs.filter(
       (j) => j.userId === String(userId) && ['SENT', 'FAILED'].includes(j.status)
     );

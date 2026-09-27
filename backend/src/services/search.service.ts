@@ -43,13 +43,17 @@ export class SearchService {
     }
 
     try {
-      const response = await esClient.search({
+      const searchPromise = esClient.search({
         index: 'emails',
         body: {
           query: { bool: { must: mustQueries } },
           sort: [{ scheduledFor: { order: 'desc' } }],
         },
       });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('ES connection timeout')), 500)
+      );
+      const response: any = await Promise.race([searchPromise, timeoutPromise]);
       return response.hits.hits.map((hit: any) => hit._source);
     } catch (error) {
       return [];

@@ -65,6 +65,7 @@ export const emailWorker = new Worker(
 
     // Throttling delay between sends
     const throttleMs = (Number(delaySeconds) || Number(process.env.DEFAULT_DELAY_BETWEEN_EMAILS_SEC) || 2) * 1000;
+    await job.updateProgress(50);
     await new Promise((resolve) => setTimeout(resolve, throttleMs));
 
     try {
@@ -92,6 +93,7 @@ export const emailWorker = new Worker(
 
       // Reset consecutive failure counter on success
       await redisConnection.set('worker:consecutive_failures', '0');
+      await job.updateProgress(100);
     } catch (err: any) {
       await prisma.emailJob.update({
         where: { id: emailRecord.id },
